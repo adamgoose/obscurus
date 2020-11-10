@@ -1,0 +1,12 @@
+namespace: obscurus
+resources:
+  - namespace.yaml
+  - serviceAccount.yaml
+  - service.yaml
+  - deployment.yaml
+
+configMapGenerator:
+  - name: obscurus
+    literals:
+      - VAULT_ROLE=obscurus
+      - VAULT_ADDR=http://vault.vault:8200

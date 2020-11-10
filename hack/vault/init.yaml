@@ -1,0 +1,19 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  namespace: vault
+spec:
+  template:
+    spec:
+      serviceAccountName: vault
+      containers:
+        - name: vault
+          image: vault-init
+          env:
+            - name: VAULT_TOKEN
+              value: fakevaulttoken
+            - name: VAULT_ADDR
+              value: http://vault.vault:8200/
+      restartPolicy: Never

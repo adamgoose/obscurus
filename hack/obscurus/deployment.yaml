@@ -1,0 +1,26 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obscurus
+  namespace: obscurus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: obscurus
+  template:
+    metadata:
+      labels:
+        app: obscurus
+    spec:
+      serviceAccountName: obscurus
+      containers:
+        - name: obscurus
+          envFrom:
+            - configMapRef:
+                name: obscurus
+          image: obscurus
+          ports:
+            - containerPort: 8000
+          resources: {}

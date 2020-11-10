@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link href="//fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="//cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="//cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+
+<body style="background-color: #121212;">
+  <div id="app">
+    <v-app>
+      <v-main>
+        <v-container class="fill-height">
+          <v-row justify="center">
+            <v-col class="col-xs-12 col-md-8">
+              <a href="/" class="text-h1 grey--text text--darken-4 text-decoration-none">Obscurus</a>
+              <div v-if="!wrappingToken">
+                <v-textarea solo v-model="secret"></v-textarea>
+                <v-btn @click="wrap" :disabled="!secret" :loading="!!wrapping">Share</v-btn>
+              </div>
+              <div v-else>
+                <v-text-field solo :value="wrappingToken" readonly>
+                  <countdown slot="append" v-if="timeLeft && !valueResult" :left-time="timeLeft">
+                    <v-btn slot="process" slot-scope="{ timeObj }" @click="unwrap" small :loading="!!unwrapping">
+                      {{ `Reveal within ${timeObj.m}:${timeObj.s}` }}
+                    </v-btn>
+                    <v-btn slot="finish" disabled small color="error">Expired</pre>
+                  </countdown>
+                </v-text-field>
+                <v-textarea solo v-model="valueResult" readonly></v-textarea>
+              </div>
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-main>
+    </v-app>
+  </div>
+
+  <script src="//cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/axios@0.21.0/dist/axios.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/vue-awesome-countdown@1.1.2/dist/vue-awesome-countdown.umd.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/vue-moment@4.1.0/dist/vue-moment.min.js"></script>
+  <script>
+    (async function () {
+      Vue.use(vueMoment)
+      new Vue({
+        el: '#app',
+        vuetify: new Vuetify({
+          theme: {
+            dark: true
+          }
+        }),
+        data: () => ({
+          wrapping: 0,
+          unwrapping: 0,
+
+          hash: window.location.hash,
+          secret: "",
+          lookupResult: {},
+          valueResult: ""
+        }),
+        computed: {
+          wrappingToken() {
+            let matches = this.hash.match(/^#(s\.\w{24})$/)
+
+            if (matches && matches.length == 2) {
+              return matches[1]
+            }
+          },
+          timeLeft() {
+            if (!this.lookupResult.creation_time) { return }
+
+            let exp = this.$moment(this.lookupResult.creation_time).add(this.lookupResult.creation_ttl, 'seconds')
+
+            return this.$moment.duration(this.$moment().diff(exp)).asMilliseconds() * -1
+          }
+        },
+        mounted() {
+          window.addEventListener('hashchange', () => {
+            this.hash = window.location.hash
+          })
+          this.lookup()
+        },
+        methods: {
+          async wrap() {
+            this.wrapping++
+            let resp = await axios.post('/api/v1/secrets', this.secret)
+            this.wrapping--
+            this.secret = ''
+
+            window.location = `#${resp.data.token}`
+          },
+          async lookup() {
+            if (!this.wrappingToken) { return }
+            try {
+              let resp = await axios.get(`/api/v1/secrets/${this.wrappingToken}`)
+              this.lookupResult = resp.data
+            } catch (e) {
+              window.location = '#'
+            }
+          },
+          async unwrap() {
+            if (!this.wrappingToken) { return }
+
+            this.unwrapping++
+            let resp = await axios.get(`/api/v1/secrets/${this.wrappingToken}/value`)
+
+            this.valueResult = resp.data
+            this.unwrapping--
+          }
+        },
+        watch: {
+          wrappingToken: function () {
+            this.lookup()
+          }
+        }
+      })
+    })()
+  </script>
+</body>
+
+</html>

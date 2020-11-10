@@ -1,0 +1,8 @@
+namespace: vault
+resources:
+  - namespace.yaml
+  - serviceAccount.yaml
+  - rbac.yaml
+  - service.yaml
+  - deployment.yaml
+  - init.yaml
